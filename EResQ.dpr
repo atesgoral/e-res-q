@@ -2,12 +2,21 @@ program EResQ;
 
 uses
   Forms,
-  Main in 'Main.pas' {FormMain},
-  TextUtils in 'TextUtils.pas',
-  Read in 'Read.pas' {FormRead},
-  MIMEDecode in 'MIMEDecode.pas',
-  DateTimeDecode in 'DateTimeDecode.pas',
-  StrUtilsX in 'StrUtilsX.pas';
+  MainForm in 'MainForm.pas' {FormMain},
+  Presets in 'Presets.pas',
+  ColumnsForm in 'ColumnsForm.pas' {FormColumns},
+  LineBuffer in 'LineBuffer.pas',
+  StrUtilsX in 'StrUtilsX.pas',
+  RegistryObject in 'RegistryObject.pas',
+  MsgForm in 'MsgForm.pas' {FormMsg},
+  ERQMessage in 'ERQMessage.pas',
+  _Trace in '_Trace.pas',
+  ERQParser in 'ERQParser.pas',
+  ERQDummyParser in 'ERQDummyParser.pas',
+  ERQConnection in 'ERQConnection.pas',
+  ERQProtocol in 'ERQProtocol.pas',
+  ERQReader in 'ERQReader.pas',
+  ERQWriter in 'ERQWriter.pas';
 
 {$R *.RES}
 
