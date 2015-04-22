@@ -1,11 +1,22 @@
+{
+Fixed contact info
+Removed splash
+Made application window resizeable
+Removed port
+Disconnect asks apply
+Decodes From and Date fields
+Fixed a typo
+}
+
 unit Main;
 
 interface
 
 uses
   Messages, SysUtils, Graphics, Forms, Classes, Controls,
-  Winsock, StdCtrls, ComCtrls, ExtCtrls, IniFiles, TextUtils, Splash, Read,
-  Menus, Dialogs, FlashLed;
+  Winsock, StdCtrls, ComCtrls, ExtCtrls, IniFiles, TextUtils, Read,
+  Menus, Dialogs, FlashLed,
+  StrUtilsX, MIMEDecode, DateTimeDecode;
 
 const
   WSVersion = $202;
@@ -22,19 +33,15 @@ const
   KeyUser = 'username';
   KeyPass = 'password';
   KeyServer = 'server';
-  KeyPort = 'port';
   KeyHdr = 'getheaders';
   KeyGrid = 'gridlines';
   KeySaveUser = 'saveusername';
   KeySavePass = 'savepassword';
   KeySaveServer = 'saveserver';
-  KeySavePort = 'saveport';
 
 type
   TFormMain = class(TForm)
-    ButtonConn: TButton;
     EditServer: TEdit;
-    EditPort: TEdit;
     MemoLog: TMemo;
     EditUser: TEdit;
     EditPass: TEdit;
@@ -42,20 +49,15 @@ type
     PanelSett: TPanel;
     PanelFunc: TPanel;
     PanelLV: TPanel;
-    BevelServer: TBevel;
-    ButtonDelete: TButton;
     ListView: TListView;
     CheckBoxUser: TCheckBox;
     CheckBoxPass: TCheckBox;
     CheckBoxServer: TCheckBox;
-    CheckBoxPort: TCheckBox;
     CheckBoxHdr: TCheckBox;
     TimerTO: TTimer;
     PanelStatus: TPanel;
     StatusBar: TStatusBar;
     ProgressBar: TProgressBar;
-    ButtonApply: TButton;
-    ButtonRead: TButton;
     PopupMenuLV: TPopupMenu;
     MenuItemGrid: TMenuItem;
     MenuItemFont: TMenuItem;
@@ -63,6 +65,12 @@ type
     FlashLedRead: TFlashLed;
     FlashLedWrite: TFlashLed;
     FlashLedTO: TFlashLed;
+    Panel1: TPanel;
+    ButtonRead: TButton;
+    ButtonDelete: TButton;
+    Panel2: TPanel;
+    ButtonConn: TButton;
+    ButtonApply: TButton;
     procedure FormCreate(Sender: TObject);
     procedure ButtonConnClick(Sender: TObject);
     procedure ButtonApplyClick(Sender: TObject);
@@ -109,6 +117,8 @@ var
   SizeSortDir: Integer = -1;
   TimeOutCount: Integer;
   NewFormRead: TFormRead;
+
+  SplitHost, SplitPort: String;
 
 implementation
 
@@ -191,7 +201,7 @@ end;
 procedure StatusMsgCnt;
 
 begin
-  Status(Plural(FormMain.ListView.Items.Count,'message'));
+  Status(Plural(FormMain.ListView.Items.Count,'message', 'messages'));
 end;
 
 procedure ErrorNum(WSCode: Integer);
@@ -235,7 +245,6 @@ begin
       LoadIni(KeyPass, EditPass, CheckBoxPass);
       EditPass.Text:=Decrypt(EditPass.Text);
       LoadIni(KeyServer, EditServer, CheckBoxServer);
-      LoadIni(KeyPort, EditPort, CheckBoxPort);
       CheckBoxHdr.Checked:= SettIni.ReadBool(SectSett, KeyHdr, False);
       ListView.GridLines:= SettIni.ReadBool(SectSett, KeyGrid, False);
       MenuItemGrid.Checked:= ListView.GridLines;
@@ -251,7 +260,6 @@ begin
       SaveIni(KeyUser, EditUser.Text, CheckBoxUser);
       SaveIni(KeyPass, Encrypt(EditPass.Text), CheckBoxPass);
       SaveIni(KeyServer, EditServer.Text, CheckBoxServer);
-      SaveIni(KeyPort, EditPort.Text, CheckBoxPort);
       SettIni.WriteBool(SectSett, KeyHdr, CheckBoxHdr.Checked);
       SettIni.WriteBool(SectSett, KeyGrid, MenuItemGrid.Checked);
     end;
@@ -292,7 +300,7 @@ begin
   CheckError(SockDesc, INVALID_SOCKET);
   SAddr.sin_family:= AF_INET;
   SAddr.sin_addr.S_addr:= inet_addr(PChar(Addr));
-  SAddr.sin_port:= htons(StrToInt(FormMain.EditPort.Text));
+  SAddr.sin_port:= htons(StrToInt(SplitPort));
   CheckError(WSAAsyncSelect(SockDesc, FormMain.Handle, WM_SCONN, FD_CONNECT),
   SOCKET_ERROR);
   CheckError(connect(SockDesc, SAddr, SizeOf(SAddr)), SOCKET_ERROR);
@@ -302,18 +310,33 @@ procedure ErrPort;
 
 begin
   Error('Invalid port');
-  FormMain.EditPort.SetFocus;
+  FormMain.EditServer.SetFocus;
 end;
 
 procedure SConnect;
+var
+  S: String;
+  ColPos: Integer;
 
 begin
-  if not IsValidPort(FormMain.EditPort.Text) then
-    ErrPort
-  else if IsValidIP(FormMain.EditServer.Text) then
-    ConnectHost(FormMain.EditServer.Text)
+  S := FormMain.EditServer.Text;
+  ColPos := Pos(':', S);
+  if (ColPos = 0) then
+    begin
+      SplitHost := S;
+      SplitPort := '110';
+    end
   else
-    DNSLookup(FormMain.EditServer.Text);
+    begin
+      SplitHost := Copy(S, 1, ColPos - 1);
+      SplitPort := Copy(S, ColPos + 1, Length(S) - ColPos);
+    end;
+  if not IsValidPort(SplitPort) then
+    ErrPort
+  else if IsValidIP(SplitHost) then
+    ConnectHost(SplitHost)
+  else
+    DNSLookup(SplitHost);
 end;
 
 procedure SetDisc;
@@ -337,6 +360,11 @@ end;
 procedure SDisconnect;
 
 begin
+  if FormMain.ButtonApply.Enabled and (MessageDlg('Disconnect without applying deletes?' + #13#10 +
+    '(You must press Apply before disconnecting' + #13#10 +
+    'to actually remove the deleted messages from the server.)',
+    mtConfirmation, mbOKCancel, 0) = mrCancel) then
+    Exit;
   if WSAIsBlocking then
     CheckError(WSACancelBlockingCall, SOCKET_ERROR);
   CheckError(closesocket(SockDesc), SOCKET_ERROR);
@@ -437,7 +465,7 @@ procedure AskHeaders;
 
 begin
   StatNoHeaders:= False;
-  Status('Retreiving headers...');
+  Status('Retrieving headers...');
   ResetProgBar(FormMain.ListView.Items.Count);
   MsgIndex:= 0;
   AskNextHeader;
@@ -450,17 +478,18 @@ var
 begin
   ResetTimer(TSKParseHeader);
   if ( S <> '.' ) then
-    begin
+    try
       Field1:= GetField(S, 1, ':');
       if ( Field1 = 'From' ) then
         FormMain.ListView.Items.Item[MsgIndex-1].SubItems.Strings[1]:=
-        Copy(S, 7, Length(S) - 6)
+        DecodeHdr(Copy(S, 7, Length(S) - 6))
       else if ( Field1 = 'Subject' ) then
         FormMain.ListView.Items.Item[MsgIndex-1].SubItems.Strings[2]:=
-        Copy(S, 10, Length(S) - 9)
+        DecodeHdr(Copy(S, 10, Length(S) - 9))
       else if ( Field1 = 'Date' ) then
         FormMain.ListView.Items.Item[MsgIndex-1].SubItems.Strings[3]:=
-        Copy(S, 7, Length(S) - 6);
+        DateTimeToStr(DecodeDateTime(Copy(S, 7, Length(S) - 6)));
+    except
     end
   else
     AskNextHeader;
@@ -737,9 +766,9 @@ end;
 procedure TFormMain.FormCreate(Sender: TObject);
 
 begin
-  Log('E-Res-Q 1.2 - 25/03/98 - by HeaT - heat@turk.net');
+  Log('E-Res-Q 1.3 - 15/11/2000 - by Ates Goral');
   Log('Check for updates at:');
-  Log('http://www.turk.net/heat/eresq/main.htm');
+  Log('http://www.magnetiq.com');
   InitWinsock;
   SettIni:= TIniFile.Create(IniFileName);
   LoadSett;
@@ -760,7 +789,7 @@ begin
   if ( Task = TSKNone ) and ( ListView.SelCount > 0 ) then
     begin
       MsgCount:= ListView.SelCount;
-      Status('Deleting ' + Plural(MsgCount, 'message') + '...');
+      Status('Deleting ' + Plural(MsgCount, 'message', 'messages') + '...');
       ResetProgBar(MsgCount);
       MsgIndex:= ListView.Selected.Index;
       DelCount:= MsgCount;
@@ -889,7 +918,7 @@ end;
 procedure ReadMsg(MsgItem: TListItem);
 
 begin
-  Status('Retreiving message ' + MsgItem.Caption + '...');
+  Status('Retrieving message ' + MsgItem.Caption + '...');
   ResetProgBar(StrToInt(MsgItem.SubItems.Strings[0]));
   NewFormRead:= TFormRead.Create(FormMain);
   NewFormRead.Caption:= 'Message ' + MsgItem.Caption;

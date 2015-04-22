@@ -9,7 +9,6 @@ const
   CryptoKey = 'P3.CK;666';
 
 function ErrToText(Code: Integer): String;
-function Plural(Count: Integer; S: String): String;
 function GetField(S: String; Field: Integer; Delim: Char): String;
 function IsValidPort(S: String): Boolean;
 function IsValidIP(S: String): Boolean;
@@ -68,21 +67,6 @@ begin
     11004: ErrToText:= 'Address does not resolve';
     else ErrToText:= 'Winsock - ' + IntToStr(Code);
   end;
-end;
-
-function Plural(Count: Integer; S: String): String;
-var
-  IntTxt, Attach: String;
-begin
-  if ( Count > 0 ) then
-    IntTxt:= IntToStr(Count)
-  else
-    IntTxt:= 'No';
-  if ( Count <> 1 ) then
-     Attach:= 's'
-  else
-     Attach:= '';
-  Plural:= IntTxt + ' ' + S + Attach;
 end;
 
 function GetField(S: String; Field: Integer; Delim: Char): String;
@@ -184,3 +168,4 @@ begin
 end;
 
 end.
+
