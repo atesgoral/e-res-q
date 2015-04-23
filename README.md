@@ -1,3 +1,7 @@
+<table>
+<tr><td>Circa 1998</td></tr>
+</table>
+
 # E-Res-Q
 
 E-Res-Q (read "ee rescue") is a very simple, portable POP3 mail reader. It enables you to selectively read and delete messages without having to download them all. It's ideal for getting rid of large messages that clog up your mailbox or getting rid of spam messages without even downloading them.
