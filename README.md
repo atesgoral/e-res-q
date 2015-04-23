@@ -10,4 +10,4 @@ E-Res-Q (read "ee rescue") is a very simple, portable POP3 mail reader. It enabl
 
 This small program has proved very useful back in the times when most of us still had dial-up connections. It's still a very useful utility for setting up quick access to your POP3 mailbox when you're temporarily using someone else's computer. The fact that it doesn't require installation is a plus. You just download the zip file, extract the binary and run it, punch in your account settings and you're good to go!
 
-[Download v1.3](http://magnetiq.com/downloads/eresq13.zip)
+[Download v1.3](http://magnetiq.com/downloads/eresq13.zip) (Windows 32-bit)
