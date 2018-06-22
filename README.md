@@ -10,4 +10,4 @@ This small program has proved very useful back in the times when most of us stil
 
 ## Download
 
-[eresq13.zip](http://magnetiq.com/downloads/eresq13.zip) (v1.3 / Windows 32-bit)
+[eresq13.zip](https://github.com/atesgoral/e-res-q/releases/download/v1.3/eresq13.zip) (v1.3 / Windows 32-bit)
